@@ -1,0 +1,710 @@
+/*------------------------------------------------------------------------------
+
+							ソンタクロースの軌跡
+
+------------------------------------------------------------------------------*/
+
+#include "user32.as"
+
+#module
+
+/*文字を中央に表示（使用例：cmes "hogehoge", 0, 640, 0, 480, 0）*/
+#deffunc cmes str ctext, int cx, int cy, int cx2, int cy2, int redraw_exist
+	RECT = cx, cy, cx2, cy2
+	DrawText@ hdc, ctext, -1, varptr(RECT), $01
+	
+	if redraw_exist = 0 : redraw 1
+	return
+
+/*指定された範囲内にマウスがあるか確認する関数（使用例：click_range (100, 0, 300, 300) ）*/
+#defcfunc click_range int mouse_x, int mouse_y, int mouse_x2, int mouse_y2
+	if ginfo_wx1 <= ginfo_mx and ginfo_wx2 >= ginfo_mx and ginfo_wy1 <= ginfo_my and ginfo_wy2 >= ginfo_my and mouse_x <= mousex and mouse_x2 >= mousex and mouse_y <= mousey and mouse_y2 >= mousey {
+		return 1
+	}
+	
+	return 0
+
+/*半透明色表示命令（機能はboxfaと同じ）*/
+#deffunc sboxf int depth, int ax, int ay, int bx, int by
+	pdx = ax, bx, bx, ax
+	pdy = ay, ay, by, by
+	gmode 3,,,depth
+	gsquare -1,pdx, pdy
+	return
+
+#global
+
+*packopt
+#packopt name "ソンタクロースの軌跡"
+#packopt icon "i/xxo.ico"
+
+*buffering
+	celload "i/title.png", 1
+	
+	celload "i/santa.png", 10
+	celload "i/houses.png", 11
+	celload "i/present_mini.png", 12
+	celload "i/present.png", 13
+	celload "i/tnm.png", 14
+
+	celload "i/presents/game_console.png", 20
+	celload "i/presents/bear.png", 21
+	celload "i/presents/radi-con.png", 22
+
+	celload "i/snowman.png", 30
+	celload "i/riaju.png", 31
+	celload "i/korobu.png", 32
+	celload "i/dokan.png", 33
+	celload "i/christmas_tree.png", 34
+	celload "i/taihou.png", 35
+	
+	celload "i/smog.png", 40
+	celload "i/bomb.png", 41
+
+*vars_reset
+	scx = 640
+	scy = 480
+
+*menu
+	onexit *exit
+
+	randomize
+
+	mci "set Sonta time format milliseconds"
+
+	title "ソンタクロースの軌跡"
+
+	mmload "bgm/ジングルベル_きよしこの夜.mp3", , 1
+	mmplay
+
+	santaX = scx/2 - (68/2)
+	santaY = 50
+
+	dim snowballX, 30
+	dim snowballY, 30
+	dim snowballYSpeed, 30
+	dim snowballP, 30
+	dim snowballSize, 30
+
+	repeat 30
+		snowballX(cnt) = rnd(scx)
+		snowballY(cnt) = -rnd(scy)
+
+		snowballYSpeed(cnt) = rnd(3)
+
+		if rnd(2) = 0 {
+			snowballP(cnt) = 1
+		} else {
+			snowballP(cnt) = -1
+		}
+		snowballSize(cnt) = rnd(5)+1
+	loop
+
+	snowLine = 0
+
+*menu2
+	onclick gosub *onclick__menu
+	
+	font "Meiryo", 14
+		
+	repeat
+		redraw 0
+
+		//背景
+			color 33, 42, 104 : boxf
+			color 255, 255, 255 : boxf 0, scy-120+80-snowLine, scx, scy
+
+		//サンタの表示
+			gmode 2
+			pos santax, santay : gcopy 10, 0, 0, 68, 40
+
+			getkey p, 37
+			if p = 1 and santaX > 0 {
+				santaX -= 4
+			}
+			getkey p, 39
+			if p = 1 and santax < scx-68 {
+				santaX += 4
+			}
+
+		i = cnt
+
+		//雪の表示
+			repeat 30
+				color 255, 255, 255
+				circle snowballX(cnt)-snowballSize(cnt), snowballY(cnt)-snowballSize(cnt), snowballX(cnt)+snowballSize(cnt), snowballY(cnt)+snowballSize(cnt)
+
+				if i \ 5 = 0 {
+					snowballP(cnt) *= -1
+				}
+				snowballX(cnt) += snowballP(cnt)
+				
+				snowballY(cnt) += snowballYSpeed(cnt)
+
+				if snowballY(cnt) > scy-120+80 + 10 {
+					snowballX(cnt) = rnd(scx)
+					snowballY(cnt) = -10
+
+					snowballYSpeed(cnt) = rnd(3)
+
+					snowLine ++
+
+					if rnd(2) = 0 {
+						snowballP(cnt) = 1
+					} else {
+						snowballP(cnt) = -1
+					}
+					snowballSize = rnd(5)+1
+				}
+			loop
+
+		//タイトル
+			pos (scx/2)-(270/2), 120 : gcopy 1, 0, 0, 270, 127
+
+		if click_range((scx/2)-50, scy-190, (scx/2)+50, scy-170) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-190, (scx/2)+50, scy-170
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-190+1, (scx/2)+50-1, scy-170-1
+
+		color 255, 255, 255 : cmes "ちゅーとりある", (scx/2)-50, scy-190, (scx/2)+50, scy-170, 1
+			
+
+		if click_range((scx/2)-50, scy-150, (scx/2)+50, scy-130) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-150, (scx/2)+50, scy-130
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-150+1, (scx/2)+50-1, scy-130-1
+
+		color 255, 255, 255 : cmes "初級", (scx/2)-50, scy-150, (scx/2)+50, scy-130, 1
+
+
+		if click_range((scx/2)-50, scy-110, (scx/2)+50, scy-90) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-110, (scx/2)+50, scy-90
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-110+1, (scx/2)+50-1, scy-90-1
+
+		color 255, 255, 255 : cmes "上級", (scx/2)-50, scy-110, (scx/2)+50, scy-90, 1
+
+		redraw 1
+		wait 10
+	loop
+
+	stop
+
+*onclick__menu
+	if click_range((scx/2)-50, scy-190, (scx/2)+50, scy-170) = 1 {
+		goto *tutorial
+	}
+	if click_range((scx/2)-50, scy-150, (scx/2)+50, scy-130) = 1 {
+		goto *main__Level_1
+	}
+	if click_range((scx/2)-50, scy-110, (scx/2)+50, scy-90) = 1 {
+		goto *main__Level_2
+	}
+
+	return
+
+*tutorial
+	onclick gosub *onclick__tutorial
+	
+	color : sboxf 128, 10, 10, scx-10, scy-10
+
+	pos 20, 15 : color 255, 255, 255
+	mes "あそびかた：\n　子どもたちが欲しがっているプレゼントを忖度して、\n　サンタクロースを操作して、プレゼントを配りましょう。\n\nるーる：\n　家から出る吹き出しを見てプレゼントを選び、\n　投下して家に当たれば得点になります。\n\n　キー操作\n　　← → : サンタの移動\n　　↑ ↓ : 投下するプレゼントの選択\n　　SPACE : プレゼント投下\n\nちゅうい：\n　上級では、サンタ狩りを実行している人々が、ときどき大砲をぶっ放します。\n　当たったらその時点でゲーム終了となりますので、\n　左右キーを押して弾を避けてください。"
+
+	repeat
+		redraw 0
+		
+		if click_range((scx/2)-50, scy-50, (scx/2)+50, scy-30) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-50, (scx/2)+50, scy-30
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-50+1, (scx/2)+50-1, scy-30-1
+	
+		color 255, 255, 255 : cmes "もどる", (scx/2)-50, scy-50, (scx/2)+50, scy-30, 1
+
+		redraw 1
+		wait 10
+	loop
+	
+	stop
+
+*onclick__tutorial
+	if click_range((scx/2)-50, scy-50, (scx/2)+50, scy-30) = 1 {
+		goto *menu2
+	}
+
+	return
+
+*main__Level_1
+	level = 1
+	total_presents = 3
+	goto *main
+
+*main__Level_2
+	level = 2
+	total_presents = 3
+	goto *main
+
+*main
+	mmstop
+
+	mmload "bgm/プレゼントボックス.mp3", , 1
+	mmplay
+	
+	dim houseX, 3
+	dim houseColor, 3
+	dim houseStatus, 3
+	dim housePresent, 3
+
+	sdim houseMessage, 32, 3
+	
+	next_house_num = 0
+	houses = 0
+
+	repeat 3
+		houseX(cnt) = -80 * (480*level) * (cnt+1)
+		houseMessage(cnt) = ""
+	loop
+	
+	backobjX = -34
+	backobj = 0
+
+	drop_present = 0
+
+	time = 61
+
+	dropped = 0
+	dropped_correct = 0
+
+	houses_total = 0
+
+	santaX = scx/2 - (68/2)
+	santaY = 50
+
+	chose_present = 0
+
+	snowLine = 0.00
+
+	danger = 0
+	backobj = 0
+
+	dim snowballX, 30
+	dim snowballY, 30
+	dim snowballYSpeed, 30
+	dim snowballP, 30
+	dim snowballSize, 30
+
+	repeat 30
+		snowballX(cnt) = rnd(scx)
+		snowballY(cnt) = -rnd(scy)
+
+		snowballYSpeed(cnt) = rnd(3)
+
+		if rnd(2) = 0 {
+			snowballP(cnt) = 1
+		} else {
+			snowballP(cnt) = -1
+		}
+		snowballSize(cnt) = rnd(5)+1
+	loop
+	
+	repeat
+		redraw 0
+
+		//背景
+			color 33, 42, 104 : boxf
+
+		i = cnt
+
+		//雪の表示
+			repeat 30
+				color 255, 255, 255
+				circle snowballX(cnt)-snowballSize(cnt), snowballY(cnt)-snowballSize(cnt), snowballX(cnt)+snowballSize(cnt), snowballY(cnt)+snowballSize(cnt)
+
+				if i \ 5 = 0 {
+					if i \ 50 = 0 {
+						snowballP(cnt) *= -1
+					}
+					snowballX(cnt) += snowballP(cnt)
+					
+					snowballY(cnt) += snowballYSpeed(cnt)
+				}
+
+				if snowballY(cnt) > scy-120+80+10{
+					snowballX(cnt) = rnd(scx)
+					snowballY(cnt) = -10
+
+					snowballYSpeed(cnt) = rnd(3)
+
+					snowLine += 0.25
+
+					if rnd(2) = 0 {
+						snowballP(cnt) = 1
+					} else {
+						snowballP(cnt) = -1
+					}
+					snowballSize = rnd(5)+1
+				}
+			loop
+
+		//ポイントと残り時間の表示
+			pos scx-100-20, 14 : gmode 2 : gcopy 12, 0, 0, 20, 20
+			font "Meiryo", 18 : color 255, 255, 255
+			pos scx-100, 10 : mes dropped_correct
+			
+			pos 10, 10 : mes "残り "+time+"秒"
+
+		//プレゼント選択ボックス
+			color 255, 255, 255 : sboxf 128, 20, 50, 20+64, 50+64*total_presents
+			color 0, 162, 232 : sboxf 128, 20, 50+chose_present*64, 20+64, 50+64+chose_present*64
+
+			repeat total_presents
+				gmode 2
+				pos 20, 50+64*cnt : gcopy 20+cnt, 0, 0, 64, 64
+			loop
+
+		//キー操作
+			getkey p, 37
+			if p = 1 and santaX > 0 {
+				santaX -= 4
+			}
+			getkey p, 39
+			if p = 1 and santax < scx-68 {
+				santaX += 4
+			}
+
+			if cnt \ 30 = 0 {
+				getkey p, 38
+				if p = 1 {
+					chose_present --
+					if chose_present < 0 {
+						chose_present = total_presents - 1
+					}
+				}
+				getkey p, 40
+				if p = 1 {
+					chose_present ++
+					if chose_present > total_presents - 1 {
+						chose_present = 0
+					}
+				}
+			}
+
+			getkey p, 32
+			if p = 1 and drop_present = 0 {
+				drop_present = 1
+				drop_present_num = chose_present
+
+				presentX = santaX - (64/2)
+				presentY = santaY + 40
+			}
+
+		//サンタの表示
+			gmode 2
+			pos santaX, santaY : gcopy 10, 0, 0, 68, 40
+
+		//背景の表示
+			if backobjX > 640 {
+				backobj = 0
+			}
+
+			if backobj = 1 {
+				pos backobjX, scy-120+80-60 : gmode 2 : gcopy 30+backobjNum, 0, 0, 65, 60
+				backobjX += 1  + ((60-time)/20)
+
+				//大砲の場合
+					if backobjNum = 5 and danger = 0 and backobjX > santaX - 260 {
+						danger = 1
+						bombX = backobjX+30 : bombY = scy-120+80-60
+
+						mci "open \""+dirinfo(0)+"\\bgm\\se\\taihou01.mp3\" alias Sonta"
+						mci "play Sonta"
+					}
+
+					if danger = 1 {
+						pos backobjX+32, scy-120+80-60 : gcopy 40, 0, 0, 32, 32
+
+						bombX += 2 : bombY -= 3
+						pos bombX, bombY : gcopy 41, 0, 0, 32, 32
+
+						if backobjX > scx {
+							mci "close Sonta"
+							danger = 0
+						}
+
+						if (santaX <= bombX+16 and santaX+68 >= bombX+16) and (santaY <= bombY+16 and santaY+40 >= bombY+16) {
+							redraw 1
+							wait 10
+							goto *game_over
+						}
+					}
+					
+			} else {
+				if rnd(100) = 0 {
+					backobj = 1
+					backobjX = -60
+
+					if level = 1 {
+						backobjNum = rnd(5)
+					} else {
+						backobjNum = rnd(6)
+					}
+				}
+			}
+
+		//家の表示
+			if houses = 0 {
+				next_house_num = 0
+			}
+			
+			if cnt \ 480 = 0 {
+				houseX(next_house_num) = -80
+				houseColor(next_house_num) = rnd(3)
+
+				houseStatus(next_house_num) = 1
+
+				housePresent(next_house_num) = rnd(total_presents)
+
+				houseMessage(next_house_num) = ""
+
+				houses += 1
+				next_house_num += 1
+
+				houses_total ++
+			}
+
+			repeat 3
+				gmode 2
+				pos houseX(cnt), scy-120 : gcopy 11, 0, houseColor(cnt)*80, 80, 80
+
+				//吹き出しの表示
+					pos houseX(cnt)-(76/2), scy-120-76 : gcopy 14, 0, 0, 75, 76
+
+				//希望のプレゼントまたはメッセージを表示
+					if houseMessage(cnt) = "" {
+						pos houseX(cnt)-(76/2)+5, scy-120-76 : gcopy 20+housePresent(cnt), 0, 0, 64, 64
+					} else {
+						color 0, 0, 0 : font "Meiryo", 10
+						pos houseX(cnt)-(76/2)+10, scy-120-76+15 : mes houseMessage(cnt)
+					}
+
+				if houseX(cnt) > 640+76 {
+					if next_house_num > cnt and next_house_num > 2 {
+						next_house_num = cnt
+						
+					}
+					
+					houses -= 1
+					houseStatus(cnt) = 0
+				} else {
+					houseX(cnt) += level + ((60-time)/20)
+				}
+				await 1
+			loop
+
+		//当たり判定
+			if drop_present = 1 {
+				gmode 2
+				pos presentX, presentY : gcopy 13, 0, 0, 64, 75
+				
+				presentY += (5*level)
+
+				if scy-120 <= presentY and scy-120+80 >= presentY+75 {
+					//当たった場合
+						repeat 3
+							if houseStatus(cnt) = 1 {
+								if abs(houseX(cnt) - presentX) <= 64 {
+									houseStatus(cnt) = 2
+									drop_present = 0
+
+									//プレゼントが欲しいものになっているか
+										if drop_present_num = housePresent(cnt) {
+											houseMessage(cnt) = "やったぁ！"
+											dropped ++
+											dropped_correct ++
+										} else {
+											dropped ++
+											houseMessage(cnt) = "ちーがーうー\nだーろー！"
+										}
+									
+									break
+								}
+							}	
+						loop
+				}
+
+				if presenty > scy {
+					drop_present = 0
+				}
+			}
+
+		//積雪の表示
+			color 255, 255, 255 : boxf 0, scy-120+80-snowLine, scx, scy
+
+		//残り時間減少
+			if cnt \ 160 = 0 {
+				time --
+			}
+
+			if time < 0 {
+				redraw 1
+				break
+			}
+
+		redraw 1
+		await 2
+	loop
+
+	goto *result
+
+*result
+	//結果表示
+		point = (double(dropped)/houses_total) * dropped_correct * level
+
+		if point <= 0 {
+			goto *game_over
+		}
+		
+		mmstop
+		mmload "bgm/Snow_Morning.mp3", , 1
+		mmplay
+
+		color 0, 0, 0 : sboxf 128, 0, 0, scx, scy
+		
+		font "Meiryo", 48 : color 255, 255, 255
+		cmes "FINISH!", 0, 150, scx, 210
+
+		font "Meiryo", 16
+		pos 200, 250 : mes "配ったプレゼントの数 : "+dropped+"\n正確に配れたプレゼントの数 : "+dropped_correct+"\n登場した家の数 : "+houses_total+""
+
+		if houses_total = 0 {
+			houses_total = 1
+		}
+		
+		font "Meiryo", 20
+		cmes "獲得ポイント "+int(point)+"", 0, 330, scx, scy
+
+		onclick gosub *onclick__result__or__game_over
+
+	repeat
+		redraw 0
+
+		font "Meiryo", 14
+		
+		if click_range((scx/2)-50, scy-100, (scx/2)+50, scy-80) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-100, (scx/2)+50, scy-80
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-100+1, (scx/2)+50-1, scy-80-1
+
+		color 255, 255, 255 : cmes "Retry?", (scx/2)-50, scy-100, (scx/2)+50, scy-80, 1
+		
+
+		if click_range((scx/2)-50, scy-60, (scx/2)+50, scy-40) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-60, (scx/2)+50, scy-40
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-60+1, (scx/2)+50-1, scy-40-1
+
+		color 255, 255, 255 : cmes "Menu", (scx/2)-50, scy-60, (scx/2)+50, scy-40, 1
+
+		redraw 1
+		wait 10
+	loop
+
+	stop
+
+*game_over
+	//結果表示
+		mmstop
+		mmload "bgm/サンタが街をスルーした.mp3", , 1
+		mmplay
+
+		color 255, 255, 255 : boxf 0, scy-120+80-snowLine, scx, scy
+
+		color 0, 0, 0 : sboxf 128, 0, 0, scx, scy
+		
+		font "Meiryo", 48 : color 255, 255, 255
+		cmes "GAME OVER!", 0, 150, scx, 210
+
+		font "Meiryo", 16
+		pos 200, 250 : mes "配ったプレゼントの数 : "+dropped+"\n正確に配れたプレゼントの数 : "+dropped_correct+"\n登場した家の数 : "+houses_total+""
+
+		if houses_total = 0 {
+			houses_total = 1
+		}
+
+		point = (double(dropped)/houses_total) * dropped_correct * level - 10
+
+		if point < 0 {
+			point = 0
+		}
+		font "Meiryo", 20
+		cmes "獲得ポイント "+int(point)+"", 0, 330, scx, scy
+
+		onclick gosub *onclick__result__or__game_over
+
+	repeat
+		redraw 0
+
+		font "Meiryo", 14
+		
+		if click_range((scx/2)-50, scy-100, (scx/2)+50, scy-80) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-100, (scx/2)+50, scy-80
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-100+1, (scx/2)+50-1, scy-80-1
+
+		color 255, 255, 255 : cmes "Retry?", (scx/2)-50, scy-100, (scx/2)+50, scy-80, 1
+		
+
+		if click_range((scx/2)-50, scy-60, (scx/2)+50, scy-40) = 1 {
+			color 0, 162, 232
+		} else {
+			color 255, 255, 255
+		}
+		boxf (scx/2)-50, scy-60, (scx/2)+50, scy-40
+		color 33, 42, 104 : boxf (scx/2)-50+1, scy-60+1, (scx/2)+50-1, scy-40-1
+
+		color 255, 255, 255 : cmes "Menu", (scx/2)-50, scy-60, (scx/2)+50, scy-40, 1
+
+		redraw 1
+		wait 10
+	loop
+
+	stop
+
+*onclick__result__or__game_over
+	if click_range((scx/2)-50, scy-100, (scx/2)+50, scy-80) = 1 {
+		if level = 1 {
+			goto *main__Level_1
+		} else {
+			goto *main__Level_2
+		}
+	}
+	if click_range((scx/2)-50, scy-60, (scx/2)+50, scy-40) = 1 {
+		goto *menu
+	}
+
+	return
+
+*exit
+	mci "close Sonta"
+	end
